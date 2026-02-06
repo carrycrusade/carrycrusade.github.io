@@ -1,0 +1,8 @@
+Backup Version: v0.2.7
+Date: January 30, 2026
+
+Changes since v0.2.6:
+- Fixed Saved Properties (Real Estate ROI) edit property name behavior:
+  - Edit box no longer remains visible after save/cancel (explicit display: none on save/cancel)
+  - Edit field now appears correctly on second and subsequent edits (clear inline display when entering edit mode)
+  - Resolved conflict between Net Worth .property-name-input CSS and Saved Properties edit UI

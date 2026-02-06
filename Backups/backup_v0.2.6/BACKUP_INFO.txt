@@ -1,0 +1,18 @@
+Backup Version: v0.2.6
+Date: January 26, 2026
+
+Changes since v0.2.5:
+- Added LTV (Loan to Value) calculation display in Real Estate card header
+- Removed gray background and borders from category headers (Banks, 401k, etc.)
+- Moved delete (X) button closer to category title text
+- Standardized all button sizes (X delete buttons and + add buttons) to smaller 22px × 22px
+- Changed green + buttons to text buttons displaying "Add Item" instead of icon
+- Added edit functionality for category names:
+  - Pencil icon appears on hover next to category headers
+  - Click to edit category name with inline text field
+  - Checkmark to save, cancel icon to cancel
+  - Delete button hidden during editing
+- Added negative symbol (-) to liabilities totals in both card header and table footer
+- Adjusted "Total Assets" and "Total Liabilities" labels to appear directly next to dollar amounts
+- Added "Total Value" footer row to Real Estate card table, matching Assets/Liabilities format
+- All totals now right-aligned to match value input column alignment

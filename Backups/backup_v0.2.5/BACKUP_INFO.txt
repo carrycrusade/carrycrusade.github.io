@@ -1,0 +1,14 @@
+Backup Version: v0.2.5
+Date: January 26, 2026
+
+Changes since v0.2.4:
+- Completed Net Worth Calculator implementation with full functionality
+- Added Assets, Liabilities, and Real Estate sections as collapsible cards
+- Implemented data persistence using localStorage
+- Added "Clear All Values" button (orange) to reset all values to $0
+- Added "Reset Form" button (red) to restore default categories and items
+- Fixed initialization logic to properly load defaults when no saved data exists
+- Real Estate section includes property name/address, estimated value, and mortgage fields
+- All sections support adding/removing items with confirmation prompts
+- Default categories and example items are properly initialized on first load
+- Navigation always initializes calculator when switching to net-worth page

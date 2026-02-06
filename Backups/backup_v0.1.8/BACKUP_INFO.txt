@@ -1,0 +1,19 @@
+Backup Version: v0.1.8
+Date: 2024-12-19
+Description: Backup created after implementing property edit functionality and UI refinements.
+
+Key Features:
+- Edit button in property cards that opens modal dialog
+- Modal dialog with all calculator fields pre-filled
+- Edit and save property calculations with automatic recalculation
+- Property card stays expanded after editing
+- Modal size reduced by 15% for better visibility
+- Fixed modal animation and scrollbar issues
+- Edit and Delete buttons same width (80px)
+- Collapsed property cards made taller (10px padding)
+- Improved vertical centering of text and icons in collapsed cards
+- Clickable area extends to dividing line
+- "Tags:" label that conditionally shows/hides
+- All previous tag editor improvements
+
+

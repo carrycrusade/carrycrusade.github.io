@@ -1,0 +1,14 @@
+Backup Version: v0.1.3
+Date: 2024-12-19
+
+Changes in this version:
+- Set Loan Term default value to 30 in the Real Estate ROI Calculator
+- Added "Expand / Contract" button functionality for selected property cards on Saved Properties tab
+- Button toggles expand/collapse state for all selected property cards
+- Swapped button positions: Expand/Contract comes before Delete Selected button
+
+Files included:
+- index.html
+- script.js
+- styles.css
+

@@ -1,0 +1,9 @@
+Backup Version: v0.2.1
+Date: 2024
+
+Changes since v0.2.0:
+- Fixed calendar dropdown background shift issue by removing overflow hidden code
+- Removed subtitle text "Calculate the number of days until or since a specific date" from Days Calculator page
+- Removed hover animation from result box (no more movement on hover)
+- Made result box half as wide while keeping it centered
+

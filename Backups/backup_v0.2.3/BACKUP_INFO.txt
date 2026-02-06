@@ -1,0 +1,8 @@
+Backup Version: v0.2.3
+Date: 2024
+
+Changes since v0.2.2:
+- Fixed background shift issue when opening/closing edit property modal by removing overflow hidden code
+- Added Escape key functionality to close edit property modal
+- Fixed focus highlight issue when closing modal with Escape key
+
