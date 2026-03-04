@@ -146,7 +146,7 @@ async function handleSignIn() {
                     errorMessage = 'Popup was blocked by your browser. Please allow popups for this site and try again.';
                     break;
                 case 'auth/popup-closed-by-user':
-                    errorMessage = 'Sign-in popup was closed. Please try again.';
+                    errorMessage = 'This usually means an old cached version is still loading. Try: (1) Hard refresh — Ctrl+Shift+R (Windows) or Cmd+Shift+R (Mac), or (2) Clear this site\'s cache and reload. Sign-in uses redirect, not a popup.';
                     break;
                 case 'auth/unauthorized-domain':
                     errorMessage = 'This domain is not authorized. Please check Firebase Console settings.';

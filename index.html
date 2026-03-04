@@ -750,9 +750,9 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     
     <!-- Firebase Configuration -->
-    <script src="firebase-config.js"></script>
+    <script src="firebase-config.js?v=0.3.1"></script>
     
-    <!-- Main Script -->
-    <script src="script.js"></script>
+    <!-- Main Script (cache-bust so redirect sign-in loads after deploy) -->
+    <script src="script.js?v=0.3.1"></script>
 </body>
 </html>
