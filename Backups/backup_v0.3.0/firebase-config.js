@@ -48,31 +48,14 @@ async function signInWithGoogle() {
     }
     
     try {
-        // Use redirect instead of popup - more reliable (no popup closing, works in more browsers)
-        await auth.signInWithRedirect(googleProvider);
-        return null; // User will land back on site after redirect; getRedirectResult handles the result
+        const result = await auth.signInWithPopup(googleProvider);
+        return result.user;
     } catch (error) {
         console.error('Error signing in with Google:', error);
+        // Re-throw with more context
         if (error.code) {
             error.message = `Firebase Auth Error (${error.code}): ${error.message}`;
         }
-        throw error;
-    }
-}
-
-// Call this on page load to complete sign-in after redirect from Google
-async function getRedirectResult() {
-    if (!auth) {
-        if (!initializeFirebase()) return null;
-    }
-    try {
-        const result = await auth.getRedirectResult();
-        if (result && result.user) {
-            return result.user;
-        }
-        return null;
-    } catch (error) {
-        console.error('Error getting redirect result:', error);
         throw error;
     }
 }
@@ -228,7 +211,6 @@ function subscribeToNetWorth(userId, callback) {
 // Make functions available globally
 window.firebaseAuth = {
     signInWithGoogle,
-    getRedirectResult,
     signOutUser,
     getCurrentUser,
     onAuthChange

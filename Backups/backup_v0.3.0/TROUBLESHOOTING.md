@@ -1,8 +1,6 @@
 # Troubleshooting Firebase Sign-In Issues
 
-**Sign-in uses redirect:** The app now uses **redirect** instead of a popup. When you click "Sign in with Google" you are sent to Google's page and then back to the site. This avoids popup timeouts and blockers. If redirect fails, check **Authorized JavaScript origins** below.
-
-If you're getting "Failed to sign in. Please try again." or redirect errors, follow these steps:
+If you're getting "Failed to sign in. Please try again." error, follow these steps:
 
 ## Step 1: Check Browser Console
 
@@ -27,29 +25,16 @@ If you're getting "Failed to sign in. Please try again." or redirect errors, fol
 9. Set a **Project support email** (your email address)
 10. Click **Save**
 
-### Add Authorized Domains (Firebase)
+### Add Authorized Domains
 
 1. Still in **Authentication** → **Sign-in method**
 2. Scroll down to **Authorized domains**
 3. Make sure these domains are listed:
    - `localhost` (for local testing)
-   - Your actual domain (e.g. `yourusername.github.io` for GitHub Pages)
+   - Your actual domain (if deployed)
    - `calculator-website-df17c.firebaseapp.com` (Firebase hosting)
 
 If testing locally, `localhost` should already be there. If not, click **Add domain** and add it.
-
-### Add Authorized JavaScript origins (Google Cloud OAuth)
-
-Required for redirect sign-in to work from your site:
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/) → your project
-2. **APIs & Services** → **Credentials**
-3. Under **OAuth 2.0 Client IDs**, open the **Web client** (the one used by Firebase)
-4. Under **Authorized JavaScript origins**, add the exact origins you use:
-   - `http://localhost:8000` (or the port you use for local testing)
-   - `https://yourusername.github.io` (if using GitHub Pages; no trailing slash)
-   - Your custom domain, e.g. `https://yourdomain.com`
-5. **Save**. Changes can take a few minutes to apply.
 
 ## Step 3: Check for Popup Blockers
 

@@ -7,57 +7,12 @@ let propertiesUnsubscribe = null;
 let netWorthUnsubscribe = null;
 let isInitialized = false;
 
-// Check if the app is running in an environment where Firebase Auth works (http/https only, not file://)
-function isAuthEnvironmentSupported() {
-    const protocol = window.location.protocol;
-    if (protocol !== 'http:' && protocol !== 'https:') {
-        return false;
-    }
-    try {
-        window.localStorage.setItem('_test', '1');
-        window.localStorage.removeItem('_test');
-        return true;
-    } catch (e) {
-        return false;
-    }
-}
-
-// Show message when opening the site via file:// (double-clicking index.html)
-function showLocalServerMessage() {
-    const container = document.getElementById('signInContainer');
-    if (!container) return;
-    container.innerHTML = '<div class="sign-in-server-message" id="signInServerMessage">' +
-        '<strong>Google sign-in requires a local server.</strong><br>' +
-        'You opened this page from your file system (<code>file://</code>). To sign in:<br>' +
-        '1. Open Terminal and go to this project folder.<br>' +
-        '2. Run: <code>python3 -m http.server 8000</code><br>' +
-        '3. In your browser, open: <a href="http://localhost:8000" target="_blank">http://localhost:8000</a>' +
-        '</div>';
-}
-
 // Initialize authentication
-async function initializeAuth() {
-    if (!isAuthEnvironmentSupported()) {
-        showLocalServerMessage();
-        return;
-    }
-
+function initializeAuth() {
     if (typeof window.firebaseAuth === 'undefined') {
         console.log('Waiting for Firebase to load...');
         setTimeout(initializeAuth, 100);
         return;
-    }
-    
-    // Complete sign-in if user just returned from Google redirect
-    try {
-        await window.firebaseAuth.getRedirectResult();
-    } catch (error) {
-        console.error('Redirect sign-in error:', error);
-        if (error.code === 'auth/unauthorized-domain') {
-            alert('This domain is not authorized for sign-in. Add it in Firebase Console → Authentication → Authorized domains.');
-        } else {
-            alert('Sign-in failed: ' + (error.message || error.code));
-        }
     }
     
     // Set up auth state listener
@@ -109,14 +64,6 @@ async function initializeAuth() {
 // Handle sign in
 async function handleSignIn() {
     try {
-        if (!isAuthEnvironmentSupported()) {
-            alert('Google sign-in only works when the site is served over http or https.\n\n' +
-                'You appear to have opened the page from your file system.\n\n' +
-                'To fix:\n1. Open Terminal and go to your project folder.\n' +
-                '2. Run: python3 -m http.server 8000\n' +
-                '3. In your browser, open: http://localhost:8000');
-            return;
-        }
         // Check if Firebase is available
         if (typeof window.firebaseAuth === 'undefined') {
             throw new Error('Firebase authentication is not loaded. Please refresh the page.');
@@ -125,15 +72,10 @@ async function handleSignIn() {
         const signInBtn = document.getElementById('signInBtn');
         if (signInBtn) {
             signInBtn.disabled = true;
-            signInBtn.textContent = 'Redirecting to Google...';
+            signInBtn.textContent = 'Signing in...';
         }
         
         await window.firebaseAuth.signInWithGoogle();
-        // If we get here without redirecting, something failed (e.g. popup path); re-enable button
-        if (signInBtn) {
-            signInBtn.disabled = false;
-            signInBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 18 18" style="margin-right: 8px;"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.965-2.184l-2.908-2.258c-.806.54-1.837.86-3.057.86-2.35 0-4.34-1.587-5.053-3.72H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.942 10.698c-.18-.54-.282-1.117-.282-1.698 0-.581.102-1.158.282-1.698V4.97H.957C.348 6.175 0 7.55 0 9c0 1.45.348 2.825.957 4.03l2.985-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.97L3.942 7.302C4.66 5.167 6.65 3.58 9 3.58z"/></svg>Sign in with Google';
-        }
     } catch (error) {
         console.error('Sign in error:', error);
         
