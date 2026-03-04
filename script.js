@@ -4,10 +4,10 @@
 
 let currentUser = null;
 let isAuthInitialized = false;
+let authFormIsSignUp = false; // shared so "Create account" / "Log in" switch and submit handler stay in sync
 
 // Initialize authentication and auth form
 async function initializeAuth() {
-    let isSignUp = false;
     const authToggleBtn = document.getElementById('authToggleBtn');
     const authFormWrapper = document.getElementById('authFormWrapper');
     const authForm = document.getElementById('authForm');
@@ -18,12 +18,32 @@ async function initializeAuth() {
     const authSwitchToLogin = document.getElementById('authSwitchToLogin');
     const authSwitchToLoginWrap = document.getElementById('authSwitchToLoginWrap');
 
-    // Attach "Log in" button first so the form always opens when clicked (even before Supabase loads)
+    // Attach form UI handlers first so they always work (even before Supabase loads)
     if (authToggleBtn && authFormWrapper) {
         authToggleBtn.addEventListener('click', function(e) {
             e.preventDefault();
             const isHidden = authFormWrapper.style.display === 'none' || !authFormWrapper.style.display;
             authFormWrapper.style.display = isHidden ? 'block' : 'none';
+        });
+    }
+    if (authSwitchToSignUp) {
+        authSwitchToSignUp.addEventListener('click', function(e) {
+            e.preventDefault();
+            authFormIsSignUp = true;
+            if (authFormTitle) authFormTitle.textContent = 'Create account';
+            if (authSubmitBtn) authSubmitBtn.textContent = 'Sign up';
+            if (authSwitchToLoginWrap) authSwitchToLoginWrap.style.display = 'inline';
+            authSwitchToSignUp.style.display = 'none';
+        });
+    }
+    if (authSwitchToLogin) {
+        authSwitchToLogin.addEventListener('click', function(e) {
+            e.preventDefault();
+            authFormIsSignUp = false;
+            if (authFormTitle) authFormTitle.textContent = 'Log in';
+            if (authSubmitBtn) authSubmitBtn.textContent = 'Log in';
+            if (authSwitchToLoginWrap) authSwitchToLoginWrap.style.display = 'none';
+            if (authSwitchToSignUp) authSwitchToSignUp.style.display = 'inline';
         });
     }
 
@@ -43,7 +63,7 @@ async function initializeAuth() {
             }
             if (authSubmitBtn) authSubmitBtn.disabled = true;
             try {
-                if (isSignUp) {
+                if (authFormIsSignUp) {
                     await window.supabaseAuth.signUp(email, password);
                     if (authFormError) authFormError.textContent = 'Check your email to confirm your account, then log in.';
                     authForm.reset();
@@ -56,26 +76,6 @@ async function initializeAuth() {
                 if (authFormError) authFormError.textContent = err.message || 'Something went wrong.';
             }
             if (authSubmitBtn) authSubmitBtn.disabled = false;
-        });
-    }
-    if (authSwitchToSignUp) {
-        authSwitchToSignUp.addEventListener('click', function(e) {
-            e.preventDefault();
-            isSignUp = true;
-            if (authFormTitle) authFormTitle.textContent = 'Create account';
-            if (authSubmitBtn) authSubmitBtn.textContent = 'Sign up';
-            if (authSwitchToLoginWrap) authSwitchToLoginWrap.style.display = 'inline';
-            authSwitchToSignUp.style.display = 'none';
-        });
-    }
-    if (authSwitchToLogin) {
-        authSwitchToLogin.addEventListener('click', function(e) {
-            e.preventDefault();
-            isSignUp = false;
-            if (authFormTitle) authFormTitle.textContent = 'Log in';
-            if (authSubmitBtn) authSubmitBtn.textContent = 'Log in';
-            if (authSwitchToLoginWrap) authSwitchToLoginWrap.style.display = 'none';
-            if (authSwitchToSignUp) authSwitchToSignUp.style.display = 'inline';
         });
     }
     const signOutBtn = document.getElementById('signOutBtn');
