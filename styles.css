@@ -2854,32 +2854,99 @@ input[type="number"]:hover {
     transition: all 0.3s ease;
 }
 
-/* Sign In / User Info Styles */
-.sign-in-container {
+/* Auth (login / sign up / user info) */
+.auth-container {
     position: fixed;
     top: 20px;
     right: 20px;
     z-index: 10001;
 }
 
-.sign-in-btn {
+.auth-toggle-btn {
     background: white;
     border: none;
     border-radius: 8px;
     padding: 10px 16px;
-    display: flex;
-    align-items: center;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    transition: all 0.3s ease;
     font-size: 0.9em;
     font-weight: 600;
     color: #333;
 }
 
-.sign-in-btn:hover {
+.auth-toggle-btn:hover {
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-    transform: scale(1.05);
+}
+
+.auth-form-wrapper {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    min-width: 260px;
+}
+
+.auth-form-title {
+    margin: 0 0 14px 0;
+    font-size: 1.1em;
+    color: #333;
+}
+
+.auth-form input {
+    display: block;
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 0.9em;
+    box-sizing: border-box;
+}
+
+.auth-form input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.auth-form-error {
+    color: #e74c3c;
+    font-size: 0.85em;
+    margin: 0 0 10px 0;
+    min-height: 1.2em;
+}
+
+.auth-submit-btn {
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.95em;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.auth-submit-btn:hover {
+    opacity: 0.95;
+}
+
+.auth-form-switch {
+    margin: 12px 0 0 0;
+    font-size: 0.85em;
+}
+
+.auth-form-switch a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.auth-form-switch a:hover {
+    text-decoration: underline;
 }
 
 .user-info-container {
@@ -2896,24 +2963,10 @@ input[type="number"]:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.user-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.user-avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 2px solid #667eea;
-}
-
-.user-name {
+.user-email {
     font-size: 0.9em;
-    font-weight: 600;
     color: #333;
-    max-width: 150px;
+    max-width: 180px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -2936,40 +2989,15 @@ input[type="number"]:hover {
     transform: scale(1.05);
 }
 
-/* Message when opened via file:// (sign-in needs local server) */
-.sign-in-server-message {
-    background: #fff3cd;
-    border: 1px solid #ffc107;
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-size: 0.85em;
-    color: #856404;
-    max-width: 380px;
-    line-height: 1.5;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.sign-in-server-message code {
-    background: rgba(0, 0, 0, 0.08);
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.9em;
-}
-
-.sign-in-server-message a {
-    color: #667eea;
-    font-weight: 600;
-}
-
 @media (max-width: 768px) {
-    .sign-in-container,
+    .auth-container,
     .user-info-container {
         top: 80px;
         right: 20px;
     }
     
-    .user-name {
-        max-width: 100px;
+    .user-email {
+        max-width: 120px;
     }
 }
 

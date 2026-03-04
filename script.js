@@ -1,291 +1,146 @@
 // ============================================
-// Firebase Authentication & Data Sync
+// Supabase: Email/Password Auth & Data Sync
 // ============================================
 
 let currentUser = null;
-let propertiesUnsubscribe = null;
-let netWorthUnsubscribe = null;
-let isInitialized = false;
+let isAuthInitialized = false;
 
-// Check if the app is running in an environment where Firebase Auth works (http/https only, not file://)
-function isAuthEnvironmentSupported() {
-    const protocol = window.location.protocol;
-    if (protocol !== 'http:' && protocol !== 'https:') {
-        return false;
-    }
-    try {
-        window.localStorage.setItem('_test', '1');
-        window.localStorage.removeItem('_test');
-        return true;
-    } catch (e) {
-        return false;
-    }
-}
-
-// Show message when opening the site via file:// (double-clicking index.html)
-function showLocalServerMessage() {
-    const container = document.getElementById('signInContainer');
-    if (!container) return;
-    container.innerHTML = '<div class="sign-in-server-message" id="signInServerMessage">' +
-        '<strong>Google sign-in requires a local server.</strong><br>' +
-        'You opened this page from your file system (<code>file://</code>). To sign in:<br>' +
-        '1. Open Terminal and go to this project folder.<br>' +
-        '2. Run: <code>python3 -m http.server 8000</code><br>' +
-        '3. In your browser, open: <a href="http://localhost:8000" target="_blank">http://localhost:8000</a>' +
-        '</div>';
-}
-
-// Initialize authentication
+// Initialize authentication and auth form
 async function initializeAuth() {
-    if (!isAuthEnvironmentSupported()) {
-        showLocalServerMessage();
-        return;
-    }
-
-    if (typeof window.firebaseAuth === 'undefined') {
-        console.log('Waiting for Firebase to load...');
+    if (typeof window.supabaseAuth === 'undefined') {
         setTimeout(initializeAuth, 100);
         return;
     }
-    
-    // Complete sign-in if user just returned from Google redirect
-    try {
-        await window.firebaseAuth.getRedirectResult();
-    } catch (error) {
-        console.error('Redirect sign-in error:', error);
-        if (error.code === 'auth/unauthorized-domain') {
-            alert('This domain is not authorized for sign-in. Add it in Firebase Console → Authentication → Authorized domains.');
-        } else {
-            alert('Sign-in failed: ' + (error.message || error.code));
-        }
+    let isSignUp = false;
+    const authToggleBtn = document.getElementById('authToggleBtn');
+    const authFormWrapper = document.getElementById('authFormWrapper');
+    const authForm = document.getElementById('authForm');
+    const authFormTitle = document.getElementById('authFormTitle');
+    const authSubmitBtn = document.getElementById('authSubmitBtn');
+    const authFormError = document.getElementById('authFormError');
+    const authSwitchToSignUp = document.getElementById('authSwitchToSignUp');
+    const authSwitchToLogin = document.getElementById('authSwitchToLogin');
+    const authSwitchToLoginWrap = document.getElementById('authSwitchToLoginWrap');
+    if (authToggleBtn && authFormWrapper) {
+        authToggleBtn.addEventListener('click', function() {
+            authFormWrapper.style.display = authFormWrapper.style.display === 'none' ? 'block' : 'none';
+        });
     }
-    
-    // Set up auth state listener
-    window.firebaseAuth.onAuthChange((user) => {
-        const previousUser = currentUser;
-        currentUser = user;
-        
-        if (user) {
-            // User signed in
-            updateUIForSignedInUser(user);
-            if (!previousUser || previousUser.uid !== user.uid) {
-                // New sign-in or different user
-                syncDataFromFirestore(user.uid);
+    if (authForm) {
+        authForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('authEmail').value.trim();
+            const password = document.getElementById('authPassword').value;
+            if (authFormError) authFormError.textContent = '';
+            if (!email || !password) {
+                if (authFormError) authFormError.textContent = 'Please enter email and password.';
+                return;
             }
-        } else {
-            // User signed out
-            updateUIForSignedOutUser();
-            if (previousUser) {
-                // Unsubscribe from real-time updates
-                if (propertiesUnsubscribe) {
-                    propertiesUnsubscribe();
-                    propertiesUnsubscribe = null;
+            if (authSubmitBtn) authSubmitBtn.disabled = true;
+            try {
+                if (isSignUp) {
+                    await window.supabaseAuth.signUp(email, password);
+                    if (authFormError) authFormError.textContent = 'Check your email to confirm your account, then log in.';
+                    authForm.reset();
+                } else {
+                    await window.supabaseAuth.signIn(email, password);
+                    if (authFormWrapper) authFormWrapper.style.display = 'none';
+                    authForm.reset();
                 }
-                if (netWorthUnsubscribe) {
-                    netWorthUnsubscribe();
-                    netWorthUnsubscribe = null;
-                }
-                // Load from localStorage as fallback
-                loadFromLocalStorage();
+            } catch (err) {
+                if (authFormError) authFormError.textContent = err.message || 'Something went wrong.';
             }
-        }
-    });
-    
-    // Set up sign-in button
-    const signInBtn = document.getElementById('signInBtn');
-    if (signInBtn) {
-        signInBtn.addEventListener('click', handleSignIn);
+            if (authSubmitBtn) authSubmitBtn.disabled = false;
+        });
     }
-    
-    // Set up sign-out button
+    if (authSwitchToSignUp) {
+        authSwitchToSignUp.addEventListener('click', function(e) {
+            e.preventDefault();
+            isSignUp = true;
+            if (authFormTitle) authFormTitle.textContent = 'Create account';
+            if (authSubmitBtn) authSubmitBtn.textContent = 'Sign up';
+            if (authSwitchToLoginWrap) authSwitchToLoginWrap.style.display = 'inline';
+            authSwitchToSignUp.style.display = 'none';
+        });
+    }
+    if (authSwitchToLogin) {
+        authSwitchToLogin.addEventListener('click', function(e) {
+            e.preventDefault();
+            isSignUp = false;
+            if (authFormTitle) authFormTitle.textContent = 'Log in';
+            if (authSubmitBtn) authSubmitBtn.textContent = 'Log in';
+            if (authSwitchToLoginWrap) authSwitchToLoginWrap.style.display = 'none';
+            if (authSwitchToSignUp) authSwitchToSignUp.style.display = 'inline';
+        });
+    }
     const signOutBtn = document.getElementById('signOutBtn');
     if (signOutBtn) {
-        signOutBtn.addEventListener('click', handleSignOut);
+        signOutBtn.addEventListener('click', async function() {
+            try { await window.supabaseAuth.signOut(); } catch (err) { console.error(err); }
+        });
     }
-    
-    isInitialized = true;
-}
-
-// Handle sign in
-async function handleSignIn() {
-    try {
-        if (!isAuthEnvironmentSupported()) {
-            alert('Google sign-in only works when the site is served over http or https.\n\n' +
-                'You appear to have opened the page from your file system.\n\n' +
-                'To fix:\n1. Open Terminal and go to your project folder.\n' +
-                '2. Run: python3 -m http.server 8000\n' +
-                '3. In your browser, open: http://localhost:8000');
-            return;
+    window.supabaseAuth.onAuthStateChange(async (user) => {
+        const previousUser = currentUser;
+        currentUser = user;
+        if (user) {
+            updateUIForSignedInUser(user);
+            if (!previousUser || previousUser.id !== user.id) await syncDataFromSupabase(user.id);
+        } else {
+            updateUIForSignedOutUser();
+            if (previousUser) loadFromLocalStorage();
         }
-        // Check if Firebase is available
-        if (typeof window.firebaseAuth === 'undefined') {
-            throw new Error('Firebase authentication is not loaded. Please refresh the page.');
-        }
-        
-        const signInBtn = document.getElementById('signInBtn');
-        if (signInBtn) {
-            signInBtn.disabled = true;
-            signInBtn.textContent = 'Redirecting to Google...';
-        }
-        
-        await window.firebaseAuth.signInWithGoogle();
-        // If we get here without redirecting, something failed (e.g. popup path); re-enable button
-        if (signInBtn) {
-            signInBtn.disabled = false;
-            signInBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 18 18" style="margin-right: 8px;"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.965-2.184l-2.908-2.258c-.806.54-1.837.86-3.057.86-2.35 0-4.34-1.587-5.053-3.72H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.942 10.698c-.18-.54-.282-1.117-.282-1.698 0-.581.102-1.158.282-1.698V4.97H.957C.348 6.175 0 7.55 0 9c0 1.45.348 2.825.957 4.03l2.985-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.97L3.942 7.302C4.66 5.167 6.65 3.58 9 3.58z"/></svg>Sign in with Google';
-        }
-    } catch (error) {
-        console.error('Sign in error:', error);
-        
-        // Provide more specific error messages
-        let errorMessage = 'Failed to sign in. Please try again.';
-        
-        if (error.code) {
-            switch (error.code) {
-                case 'auth/popup-blocked':
-                    errorMessage = 'Popup was blocked by your browser. Please allow popups for this site and try again.';
-                    break;
-                case 'auth/popup-closed-by-user':
-                    errorMessage = 'This usually means an old cached version is still loading. Try: (1) Hard refresh — Ctrl+Shift+R (Windows) or Cmd+Shift+R (Mac), or (2) Clear this site\'s cache and reload. Sign-in uses redirect, not a popup.';
-                    break;
-                case 'auth/unauthorized-domain':
-                    errorMessage = 'This domain is not authorized. Please check Firebase Console settings.';
-                    break;
-                case 'auth/operation-not-allowed':
-                    errorMessage = 'Google sign-in is not enabled. Please enable it in Firebase Console.';
-                    break;
-                case 'auth/network-request-failed':
-                    errorMessage = 'Network error. Please check your internet connection and try again.';
-                    break;
-                default:
-                    errorMessage = `Sign-in error: ${error.message || error.code}`;
-            }
-        } else if (error.message) {
-            errorMessage = error.message;
-        }
-        
-        alert(errorMessage);
-        
-        const signInBtn = document.getElementById('signInBtn');
-        if (signInBtn) {
-            signInBtn.disabled = false;
-            signInBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 18 18" style="margin-right: 8px;"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.965-2.184l-2.908-2.258c-.806.54-1.837.86-3.057.86-2.35 0-4.34-1.587-5.053-3.72H.957v2.332C2.438 15.983 5.482 18 9 18z"/><path fill="#FBBC05" d="M3.942 10.698c-.18-.54-.282-1.117-.282-1.698 0-.581.102-1.158.282-1.698V4.97H.957C.348 6.175 0 7.55 0 9c0 1.45.348 2.825.957 4.03l2.985-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.97L3.942 7.302C4.66 5.167 6.65 3.58 9 3.58z"/></svg>Sign in with Google';
-        }
+    });
+    const user = await window.supabaseAuth.getUser();
+    if (user) {
+        currentUser = user;
+        updateUIForSignedInUser(user);
+        await syncDataFromSupabase(user.id);
+    } else {
+        updateUIForSignedOutUser();
     }
+    isAuthInitialized = true;
 }
-
-// Handle sign out
-async function handleSignOut() {
-    try {
-        await window.firebaseAuth.signOutUser();
-    } catch (error) {
-        console.error('Sign out error:', error);
-        alert('Failed to sign out. Please try again.');
-    }
-}
-
-// Update UI for signed in user
 function updateUIForSignedInUser(user) {
-    const signInContainer = document.getElementById('signInContainer');
+    const authContainer = document.getElementById('authContainer');
     const userInfoContainer = document.getElementById('userInfoContainer');
-    const userAvatar = document.getElementById('userAvatar');
-    const userName = document.getElementById('userName');
-    
-    if (signInContainer) signInContainer.style.display = 'none';
+    const userEmail = document.getElementById('userEmail');
+    if (authContainer) authContainer.style.display = 'none';
     if (userInfoContainer) userInfoContainer.style.display = 'flex';
-    if (userAvatar && user.photoURL) userAvatar.src = user.photoURL;
-    if (userName) userName.textContent = user.displayName || user.email;
+    if (userEmail) userEmail.textContent = user.email || '';
 }
-
-// Update UI for signed out user
 function updateUIForSignedOutUser() {
-    const signInContainer = document.getElementById('signInContainer');
+    const authContainer = document.getElementById('authContainer');
     const userInfoContainer = document.getElementById('userInfoContainer');
-    
-    if (signInContainer) signInContainer.style.display = 'block';
+    if (authContainer) authContainer.style.display = 'block';
     if (userInfoContainer) userInfoContainer.style.display = 'none';
 }
-
-// Sync data from Firestore when user signs in
-async function syncDataFromFirestore(userId) {
+async function syncDataFromSupabase(userId) {
+    if (typeof window.supabaseData === 'undefined') return;
     try {
-        // Sync saved properties
-        const properties = await window.firebaseFirestore.getPropertiesFromFirestore(userId);
+        const properties = await window.supabaseData.fetchProperties(userId);
         if (properties && properties.length > 0) {
-            // Merge with localStorage (keep local if newer)
-            const localProperties = JSON.parse(localStorage.getItem('savedProperties') || '[]');
-            const mergedProperties = mergeProperties(properties, localProperties);
-            localStorage.setItem('savedProperties', JSON.stringify(mergedProperties));
-            
-            // Save merged data back to Firestore
-            for (const property of mergedProperties) {
-                await window.firebaseFirestore.savePropertyToFirestore(userId, property);
-            }
-            
-            // Reload the properties list
-            if (typeof loadSavedProperties === 'function') {
-                loadSavedProperties();
-            }
+            const local = JSON.parse(localStorage.getItem('savedProperties') || '[]');
+            const merged = mergeProperties(properties, local);
+            localStorage.setItem('savedProperties', JSON.stringify(merged));
+            await window.supabaseData.saveProperties(userId, merged);
+            if (typeof loadSavedProperties === 'function') loadSavedProperties();
         }
-        
-        // Set up real-time subscription for properties
-        if (propertiesUnsubscribe) {
-            propertiesUnsubscribe();
-        }
-        propertiesUnsubscribe = window.firebaseFirestore.subscribeToProperties(userId, (properties) => {
-            localStorage.setItem('savedProperties', JSON.stringify(properties));
-            if (typeof loadSavedProperties === 'function') {
-                loadSavedProperties();
-            }
-        });
-        
-        // Sync net worth data
-        const netWorthData = await window.firebaseFirestore.getNetWorthFromFirestore(userId);
-        if (netWorthData) {
-            const localNetWorth = localStorage.getItem('netWorthData');
-            if (localNetWorth) {
-                const localData = JSON.parse(localNetWorth);
-                // Merge: prefer Firestore if it's newer
-                const mergedData = netWorthData.lastUpdated > localData.lastUpdated ? netWorthData : localData;
-                localStorage.setItem('netWorthData', JSON.stringify(mergedData));
-                
-                // Reload net worth calculator
-                if (typeof loadNetWorthData === 'function') {
-                    loadNetWorthData();
-                    if (typeof renderNetWorthTables === 'function') {
-                        renderNetWorthTables();
-                    }
-                }
+        const netWorth = await window.supabaseData.fetchNetWorth(userId);
+        if (netWorth) {
+            const local = localStorage.getItem('netWorthData');
+            if (local) {
+                const localParsed = JSON.parse(local);
+                const merged = (netWorth.updated_at > (localParsed.updated_at || '')) ? netWorth : localParsed;
+                localStorage.setItem('netWorthData', JSON.stringify(merged));
             } else {
-                localStorage.setItem('netWorthData', JSON.stringify(netWorthData));
-                if (typeof loadNetWorthData === 'function') {
-                    loadNetWorthData();
-                    if (typeof renderNetWorthTables === 'function') {
-                        renderNetWorthTables();
-                    }
-                }
+                localStorage.setItem('netWorthData', JSON.stringify(netWorth));
+            }
+            if (typeof loadNetWorthData === 'function') {
+                loadNetWorthData();
+                if (typeof renderNetWorthTables === 'function') renderNetWorthTables();
             }
         }
-        
-        // Set up real-time subscription for net worth
-        if (netWorthUnsubscribe) {
-            netWorthUnsubscribe();
-        }
-        netWorthUnsubscribe = window.firebaseFirestore.subscribeToNetWorth(userId, (data) => {
-            if (data) {
-                localStorage.setItem('netWorthData', JSON.stringify(data));
-                if (typeof loadNetWorthData === 'function') {
-                    loadNetWorthData();
-                    if (typeof renderNetWorthTables === 'function') {
-                        renderNetWorthTables();
-                    }
-                }
-            }
-        });
-        
-    } catch (error) {
-        console.error('Error syncing data from Firestore:', error);
-    }
+    } catch (err) { console.error('Sync from Supabase:', err); }
 }
 
 // Merge properties arrays (prefer newer ones)
@@ -968,10 +823,10 @@ document.addEventListener('DOMContentLoaded', function() {
             localStorage.setItem('savedProperties', JSON.stringify(savedProperties));
             
             // Save to Firestore if user is signed in
-            const user = window.firebaseAuth ? window.firebaseAuth.getCurrentUser() : null;
+            const user = window.supabaseAuth ? await window.supabaseAuth.getUser() : null;
             if (user) {
                 try {
-                    await window.firebaseFirestore.savePropertyToFirestore(user.uid, newProperty);
+                    await window.supabaseData.saveProperty(user.id, newProperty);
                 } catch (error) {
                     console.error('Error saving to Firestore:', error);
                     // Continue anyway - data is saved locally
@@ -1010,10 +865,10 @@ async function loadSavedProperties(expandPropertyId = null) {
     let savedProperties = JSON.parse(localStorage.getItem('savedProperties') || '[]');
     
     // If user is signed in, try to get latest from Firestore (but don't wait)
-    const user = window.firebaseAuth ? window.firebaseAuth.getCurrentUser() : null;
-    if (user && window.firebaseFirestore) {
+    const user = window.supabaseAuth ? await window.supabaseAuth.getUser() : null;
+    if (user && window.supabaseData) {
         try {
-            const firestoreProperties = await window.firebaseFirestore.getPropertiesFromFirestore(user.uid);
+            const firestoreProperties = await window.supabaseData.fetchProperties(user.id);
             if (firestoreProperties && firestoreProperties.length > 0) {
                 // Merge with local (prefer Firestore if newer)
                 const merged = mergeProperties(firestoreProperties, savedProperties);
@@ -1428,10 +1283,10 @@ async function deleteProperty(id) {
     localStorage.setItem('savedProperties', JSON.stringify(savedProperties));
     
     // Delete from Firestore if user is signed in
-    const user = window.firebaseAuth ? window.firebaseAuth.getCurrentUser() : null;
+    const user = window.supabaseAuth ? await window.supabaseAuth.getUser() : null;
     if (user && propertyToDelete) {
         try {
-            await window.firebaseFirestore.deletePropertyFromFirestore(user.uid, id);
+            await window.supabaseData.deleteProperty(user.id, id);
         } catch (error) {
             console.error('Error deleting from Firestore:', error);
         }
@@ -1551,11 +1406,11 @@ async function bulkDeleteProperties() {
     localStorage.setItem('savedProperties', JSON.stringify(savedProperties));
     
     // Delete from Firestore if user is signed in
-    const user = window.firebaseAuth ? window.firebaseAuth.getCurrentUser() : null;
+    const user = window.supabaseAuth ? await window.supabaseAuth.getUser() : null;
     if (user) {
         try {
             for (const id of selectedIds) {
-                await window.firebaseFirestore.deletePropertyFromFirestore(user.uid, id);
+                await window.supabaseData.deleteProperty(user.id, id);
             }
         } catch (error) {
             console.error('Error deleting from Firestore:', error);
@@ -1765,10 +1620,10 @@ async function savePropertyName(propertyId) {
         localStorage.setItem('savedProperties', JSON.stringify(savedProperties));
         
         // Save to Firestore if user is signed in
-        const user = window.firebaseAuth ? window.firebaseAuth.getCurrentUser() : null;
+        const user = window.supabaseAuth ? await window.supabaseAuth.getUser() : null;
         if (user) {
             try {
-                await window.firebaseFirestore.savePropertyToFirestore(user.uid, savedProperties[propertyIndex]);
+                await window.supabaseData.saveProperty(user.id, savedProperties[propertyIndex]);
             } catch (error) {
                 console.error('Error saving to Firestore:', error);
             }
@@ -2111,10 +1966,10 @@ async function addTagToProperty(propertyId, tagName) {
     localStorage.setItem('savedProperties', JSON.stringify(savedProperties));
     
     // Save to Firestore if user is signed in
-    const user = window.firebaseAuth ? window.firebaseAuth.getCurrentUser() : null;
+    const user = window.supabaseAuth ? await window.supabaseAuth.getUser() : null;
     if (user) {
         try {
-            await window.firebaseFirestore.savePropertyToFirestore(user.uid, property);
+            await window.supabaseData.saveProperty(user.id, property);
         } catch (error) {
             console.error('Error saving to Firestore:', error);
         }
@@ -2328,10 +2183,10 @@ async function deleteTagByIndex(propertyId, tagIndex) {
     localStorage.setItem('savedProperties', JSON.stringify(savedProperties));
     
     // Save to Firestore if user is signed in
-    const user = window.firebaseAuth ? window.firebaseAuth.getCurrentUser() : null;
+    const user = window.supabaseAuth ? await window.supabaseAuth.getUser() : null;
     if (user) {
         try {
-            await window.firebaseFirestore.savePropertyToFirestore(user.uid, property);
+            await window.supabaseData.saveProperty(user.id, property);
         } catch (error) {
             console.error('Error saving to Firestore:', error);
         }
@@ -2658,10 +2513,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.setItem('savedProperties', JSON.stringify(savedProperties));
                 
                 // Save to Firestore if user is signed in
-                const user = window.firebaseAuth ? window.firebaseAuth.getCurrentUser() : null;
+                const user = window.supabaseAuth ? await window.supabaseAuth.getUser() : null;
                 if (user) {
                     try {
-                        await window.firebaseFirestore.savePropertyToFirestore(user.uid, savedProperties[propertyIndex]);
+                        await window.supabaseData.saveProperty(user.id, savedProperties[propertyIndex]);
                     } catch (error) {
                         console.error('Error saving to Firestore:', error);
                     }
@@ -3247,10 +3102,10 @@ async function saveNetWorthData() {
     localStorage.setItem('netWorthData', JSON.stringify(data));
     
     // Save to Firestore if user is signed in
-    const user = window.firebaseAuth ? window.firebaseAuth.getCurrentUser() : null;
-    if (user && window.firebaseFirestore) {
+    const user = window.supabaseAuth ? await window.supabaseAuth.getUser() : null;
+    if (user && window.supabaseData) {
         try {
-            await window.firebaseFirestore.saveNetWorthToFirestore(user.uid, data);
+            await window.supabaseData.saveNetWorthData(user.id, data);
         } catch (error) {
             console.error('Error saving net worth to Firestore:', error);
         }
@@ -3259,18 +3114,16 @@ async function saveNetWorthData() {
 
 async function loadNetWorthData() {
     // Try to load from Firestore if user is signed in
-    const user = window.firebaseAuth ? window.firebaseAuth.getCurrentUser() : null;
-    if (user && window.firebaseFirestore) {
+    const user = window.supabaseAuth ? await window.supabaseAuth.getUser() : null;
+    if (user && window.supabaseData) {
         try {
-            const firestoreData = await window.firebaseFirestore.getNetWorthFromFirestore(user.uid);
+            const firestoreData = await window.supabaseData.fetchNetWorth(user.id);
             if (firestoreData) {
-                // Remove lastUpdated field if present
-                const { lastUpdated, ...data } = firestoreData;
+                const { updated_at: _u, ...data } = firestoreData;
                 const localData = localStorage.getItem('netWorthData');
                 if (localData) {
                     const localParsed = JSON.parse(localData);
-                    // Merge: prefer Firestore if it's newer
-                    const mergedData = firestoreData.lastUpdated > (localParsed.lastUpdated || '') ? data : localParsed;
+                    const mergedData = (firestoreData.updated_at || '') > (localParsed.updated_at || '') ? { ...data, updated_at: firestoreData.updated_at } : localParsed;
                     localStorage.setItem('netWorthData', JSON.stringify(mergedData));
                     assetCategories = mergedData.assetCategories || {};
                     liabilityCategories = mergedData.liabilityCategories || {};
