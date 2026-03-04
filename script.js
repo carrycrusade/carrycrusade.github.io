@@ -7,10 +7,6 @@ let isAuthInitialized = false;
 
 // Initialize authentication and auth form
 async function initializeAuth() {
-    if (typeof window.supabaseAuth === 'undefined') {
-        setTimeout(initializeAuth, 100);
-        return;
-    }
     let isSignUp = false;
     const authToggleBtn = document.getElementById('authToggleBtn');
     const authFormWrapper = document.getElementById('authFormWrapper');
@@ -21,10 +17,19 @@ async function initializeAuth() {
     const authSwitchToSignUp = document.getElementById('authSwitchToSignUp');
     const authSwitchToLogin = document.getElementById('authSwitchToLogin');
     const authSwitchToLoginWrap = document.getElementById('authSwitchToLoginWrap');
+
+    // Attach "Log in" button first so the form always opens when clicked (even before Supabase loads)
     if (authToggleBtn && authFormWrapper) {
-        authToggleBtn.addEventListener('click', function() {
-            authFormWrapper.style.display = authFormWrapper.style.display === 'none' ? 'block' : 'none';
+        authToggleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const isHidden = authFormWrapper.style.display === 'none' || !authFormWrapper.style.display;
+            authFormWrapper.style.display = isHidden ? 'block' : 'none';
         });
+    }
+
+    if (typeof window.supabaseAuth === 'undefined') {
+        setTimeout(initializeAuth, 100);
+        return;
     }
     if (authForm) {
         authForm.addEventListener('submit', async function(e) {
